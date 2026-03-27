@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI } from '@google/genai';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sparkles, Image as ImageIcon, Copy, RefreshCw, Wand2, Scissors, 
@@ -187,45 +186,30 @@ export default function App() {
     setIsFinishedTyping(false);
     if (outputTextRef.current) outputTextRef.current.textContent = '';
 
-    const lengthMap: Record<string, string> = { 'قصير': '50-80 كلمة', 'متوسط': '100-150 كلمة', 'طويل': '200-300 كلمة' };
-    const systemPrompt = `أنت كاتب محتوى عربي محترف خبير في التسويق الرقمي والكتابة الإبداعية.
-اكتب ${typeLabels[selectedType]} باللغة العربية.
-اللهجة المطلوبة: ${selectedDialect}
-النبرة المطلوبة: ${selectedTone}
-الطول المطلوب: ${lengthMap[selectedLength]}
-استخدم الهاشتاقات المناسبة للسوشيال ميديا عند الحاجة.
-اكتب المحتوى النهائي مباشرة دون مقدمات أو شرح أو ملاحظات.`;
-
     try {
-      if (!process.env.GEMINI_API_KEY) {
-        throw new Error('مفتاح الذكاء الاصطناعي (GEMINI_API_KEY) غير مضاف في إعدادات المنصة (Secrets).');
-      }
-
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      let contents: any;
-
-      if (image) {
-        contents = {
-          parts: [
-            { inlineData: { data: image.data, mimeType: image.mimeType } },
-            { text: systemPrompt + '\n\nالموضوع المطلوب: ' + currentPrompt }
-          ]
-        };
-      } else {
-        contents = systemPrompt + '\n\nالموضوع المطلوب: ' + currentPrompt;
-      }
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: contents,
-        config: {
-          temperature: 0.85,
-          topP: 0.95
-        }
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt: currentPrompt,
+          image,
+          selectedType,
+          selectedDialect,
+          selectedTone,
+          selectedLength
+        })
       });
 
-      if (response.text) {
-        typeWriter(response.text);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'حدث خطأ في الخادم');
+      }
+
+      const data = await response.json();
+      if (data.text) {
+        typeWriter(data.text);
       } else {
         throw new Error('استجابة فارغة');
       }

@@ -197,6 +197,10 @@ export default function App() {
 اكتب المحتوى النهائي مباشرة دون مقدمات أو شرح أو ملاحظات.`;
 
     try {
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error('مفتاح الذكاء الاصطناعي (GEMINI_API_KEY) غير مضاف في إعدادات المنصة (Secrets).');
+      }
+
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       let contents: any;
 
